@@ -16,6 +16,8 @@ TO_TOP_LEFT_OFFSET = -Y_DIAGONAL_OFFSET - X_DIAGONAL_OFFSET
 
 # store in a dictionnary all the loosing positions
 loosing_hashtable = {}
+# store in a dictionnary all the winning positions and their path to solutions
+winning_hashtable = {}
 # store in a list all the solutions found
 solutions = []
 
@@ -146,16 +148,28 @@ def get_moves(grid: int, index: int) -> list[int]:
     return indexes
 
 
-def solve(grid: int, index: int, played_moves: list[str]) -> bool:
-    global loosing_hashtable, solutions
+def solve(grid: int, index: int, played_moves: list[str]) -> list[list[str]]:
+    global winning_hashtable, loosing_hashtable, solutions
     is_winning = False
+    solution_paths = []
 
     # if grid is full
     if len(played_moves) == DIGITS_NUMBER:
         solutions.append(played_moves.copy())
         print(show_grid(solutions[-1]))
         print(len(solutions))
-        return True
+        solution_paths.append([])
+        return solution_paths
+
+    # if same position has already found solutions
+    if winning_hashtable.get(get_hash(grid, index)):
+        for solution_path in winning_hashtable[get_hash(grid, index)]:
+            played_moves_copy = played_moves.copy()
+            played_moves_copy.extend(solution_path)
+            solutions.append(played_moves_copy)
+            print(show_grid(solutions[-1]))
+        print(len(solutions))
+        return winning_hashtable[get_hash(grid, index)]
 
     for move in get_moves(grid, index):
         # make the move
@@ -171,13 +185,18 @@ def solve(grid: int, index: int, played_moves: list[str]) -> bool:
         if not result:
             loosing_hashtable[get_hash(grid, move)] = (grid, move)
         else:
-            is_winning = True
+            new_solution_paths = [solution_path.copy() for solution_path in result]
+            for solution_path in new_solution_paths:
+                solution_path.insert(0, str(move))
+            solution_paths.extend(new_solution_paths)
 
         # cancel the move
         played_moves.pop(-1)
         grid ^= 1 << move
 
-    return is_winning
+    if solution_paths:
+        winning_hashtable[get_hash(grid, index)] = solution_paths
+    return solution_paths
 
 
 if __name__ == "__main__":
